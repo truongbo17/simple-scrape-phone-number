@@ -2,3 +2,9 @@
 
 * Run `composer install`
 * Run `php scrape.php`
+
+
+Example
+<p align="center">
+  <img src="./example.png"/>
+</p>
