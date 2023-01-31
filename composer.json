@@ -1,0 +1,10 @@
+{
+  "require": {
+    "symfony/var-dumper": "^6.2",
+    "ext-readline": "*",
+    "symfony/dom-crawler": "^6.2",
+    "guzzlehttp/guzzle": "^7.0",
+    "ext-mbstring": "*",
+    "symfony/css-selector": "^6.2"
+  }
+}
