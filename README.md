@@ -1,6 +1,11 @@
-#### Simple scrape phone number from multiple site (PHP >= 8.0)
+#### Simple scrape phone number from multiple site 
+
+##### Requirements :
+    PHP >= 8.1
+    Node version 19
 
 * Run `composer install`
+* Run `yarn install`
 * Run `php scrape.php`
 
 

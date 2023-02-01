@@ -22,13 +22,13 @@ final class ScrapePhone
     private string $should_get_info = "";
 
     private array $guzzle_config = [
-        'timeout'         => 1000,
-        'verify'          => false,
-        'headers'         => [
+        'timeout' => 1000,
+        'verify' => false,
+        'headers' => [
             'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Safari/537.36',
-            'Accept'     => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+            'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
         ],
-        'http_errors'     => false,
+        'http_errors' => false,
         'allow_redirects' => [
             'track_redirects' => true
         ],
@@ -43,56 +43,56 @@ final class ScrapePhone
 
     private function input(): void
     {
-        $this->url = readline("\033[1m\033[34m Nhập url cần scrape phone : ");
+        $this->url = readline("Nhập url cần scrape phone : ");
         $this->url = trim($this->url);
         if (!filter_var($this->url, FILTER_VALIDATE_URL)) {
-            die("\033[31m Vui lòng nhập đúng định dạng url ! \n");
+            die("Vui lòng nhập đúng định dạng url ! \n");
         }
 
-        $drivers = implode(",", ["guzzle", "puppeteer"]);
-        $this->driver = readline("\033[1m\033[34m Chọn driver \"{$drivers}\" (default using guzzle) : ");
+        $drivers = implode(",", ["guzzle"]);
+        $this->driver = readline("Chọn driver \"{$drivers}\" (default using guzzle) : ");
         if (empty($this->driver)) $this->driver = "guzzle";
         $this->driver = strtolower($this->driver);
         $this->driver = trim($this->driver);
-        if (!in_array($this->driver, ["guzzle", "puppeteer"])) {
-            die("\033[31m Vui lòng chọn đúng driver ! \n");
+        if (!in_array($this->driver, ["guzzle"])) {
+            die("Vui lòng chọn đúng driver ! \n");
         }
 
         $types = implode(",", ["css", "xpath"]);
-        $this->type_dom = readline("\033[1m\033[34m Chọn type dom \"{$types}\" (default using css) : ");
+        $this->type_dom = readline("Chọn type dom \"{$types}\" (default using css) : ");
         if (empty($this->type_dom)) $this->type_dom = "css";
         $this->type_dom = strtolower($this->type_dom);
         $this->type_dom = trim($this->type_dom);
         if (!in_array($this->type_dom, ["css", "xpath"])) {
-            die("\033[31m Vui lòng chọn đúng type dom ! \n");
+            die("Vui lòng chọn đúng type dom ! \n");
         }
 
         $doms = implode(",", ["table", "string"]);
-        $this->dom = readline("\033[1m\033[34m Chọn type dom \"{$doms}\" (default using string) : ");
+        $this->dom = readline("Chọn type dom \"{$doms}\" (default using string) : ");
         if (empty($this->dom)) $this->dom = "string";
         $this->dom = strtolower($this->dom);
         $this->dom = trim($this->dom);
         if (!in_array($this->dom, ["table", "string"])) {
-            die("\033[31m Vui lòng chọn đúng dom ! \n");
+            die("Vui lòng chọn đúng dom ! \n");
         }
 
         if ($this->dom == "string") {
-            $this->should_get_info = readline("\033[1m\033[34m Nhập dom cần lấy dữ liệu : ");
+            $this->should_get_info = readline("Nhập dom cần lấy dữ liệu : ");
             if (empty($this->should_get_info)) {
-                die("\033[31m Vui lòng nhập dom ! \n");
+                die("Vui lòng nhập dom ! \n");
             }
         } elseif ($this->dom == "table") {
-            $this->should_get_info = readline("\033[1m\033[34m Nhập dom của bảng cần lấy dữ liệu : ");
+            $this->should_get_info = readline("Nhập dom của bảng cần lấy dữ liệu : ");
             if (empty($this->should_get_info)) {
-                die("\033[31m Vui lòng nhập dom của bảng (thẻ tr) ! \n");
+                die("Vui lòng nhập dom của bảng (thẻ tr) ! \n");
             }
-            $this->should_get_info_name = readline("\033[1m\033[34m Nhập dom cần lấy dữ liệu của Tên trong bảng : ");
+            $this->should_get_info_name = readline("Nhập dom cần lấy dữ liệu của Tên trong bảng : ");
             if (empty($this->should_get_info_name)) {
-                die("\033[31m Vui lòng nhập dom của Tên ! \n");
+                die("Vui lòng nhập dom của Tên ! \n");
             }
-            $this->should_get_info_phone = readline("\033[1m\033[34m Nhập dom cần lấy dữ liệu của Số điện thoại trong bảng : ");
+            $this->should_get_info_phone = readline("Nhập dom cần lấy dữ liệu của Số điện thoại trong bảng : ");
             if (empty($this->should_get_info_phone)) {
-                die("\033[31m Vui lòng nhập dom của Số điện thoại ! \n");
+                die("Vui lòng nhập dom của Số điện thoại ! \n");
             }
         }
     }
@@ -124,8 +124,7 @@ final class ScrapePhone
                         ];
                     });
                 } else if ($this->type_dom == "xpath") {
-                    $dom_crawler = $dom_crawler->filterXPath($this->should_get_info);
-                    $result = $dom_crawler->each(function ($node, $i) {
+                    $result = $dom_crawler->filterXPath($this->should_get_info)->each(function ($node, $i) {
                         return [
                             $node->filterXPath($this->should_get_info_name)->text(),
                             $node->filterXPath($this->should_get_info_phone)->text(),
@@ -139,7 +138,7 @@ final class ScrapePhone
 
             die("\033[32m Lấy dữ liệu thành công ! Vui lòng kiểm tra file {$file_name} \n");
         } catch (Exception $exception) {
-            die("\033[31m {$exception->getMessage()} \n");
+            die("{$exception->getMessage()} \n");
         }
     }
 

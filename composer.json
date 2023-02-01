@@ -1,5 +1,6 @@
 {
   "require": {
+    "php": "^8.1",
     "symfony/var-dumper": "^6.2",
     "ext-readline": "*",
     "symfony/dom-crawler": "^6.2",
