@@ -82,7 +82,7 @@ final class ScrapePhone
                 die("Vui lòng nhập dom ! \n");
             }
         } elseif ($this->dom == "table") {
-            $this->should_get_info = readline("Nhập dom của bảng cần lấy dữ liệu : ");
+            $this->should_get_info = readline("Nhập dom của bảng cần lấy dữ liệu (thẻ tr) : ");
             if (empty($this->should_get_info)) {
                 die("Vui lòng nhập dom của bảng (thẻ tr) ! \n");
             }
@@ -97,7 +97,7 @@ final class ScrapePhone
         }
     }
 
-    public function scrape()
+    public function scrape(): void
     {
         try {
             $html = $this->getHtml();
@@ -118,17 +118,27 @@ final class ScrapePhone
                 //crawl with table
                 if ($this->type_dom == "css") {
                     $result = $dom_crawler->filter($this->should_get_info)->each(function ($node, $i) {
-                        return [
-                            $node->filter($this->should_get_info_name)->text(),
-                            $node->filter($this->should_get_info_phone)->text(),
-                        ];
+                        if (
+                            $node->filter($this->should_get_info_name)->count() > 0 &&
+                            $node->filter($this->should_get_info_phone)->count() > 0
+                        ) {
+                            return [
+                                $node->filter($this->should_get_info_name)->text(),
+                                $node->filter($this->should_get_info_phone)->text(),
+                            ];
+                        }
                     });
                 } else if ($this->type_dom == "xpath") {
                     $result = $dom_crawler->filterXPath($this->should_get_info)->each(function ($node, $i) {
-                        return [
-                            $node->filterXPath($this->should_get_info_name)->text(),
-                            $node->filterXPath($this->should_get_info_phone)->text(),
-                        ];
+                        if (
+                            $node->filterXPath($this->should_get_info_name)->count() > 0 &&
+                            $node->filterXPath($this->should_get_info_phone)->count() > 0
+                        ) {
+                            return [
+                                $node->filterXPath($this->should_get_info_name)->text(),
+                                $node->filterXPath($this->should_get_info_phone)->text(),
+                            ];
+                        }
                     });
                 }
             }
