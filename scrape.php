@@ -44,28 +44,31 @@ final class ScrapePhone
 
     private array $urls_scraped = [];
 
-    public function __construct()
+    public function __construct(bool $validate_url_scraped = true)
     {
-        $this->input();
+        $this->input($validate_url_scraped);
     }
 
-    private function input(): void
+    private function input(bool $validate_url_scraped): void
     {
         $this->url = readline("Nhập url cần scrape phone : ");
         $this->url = trim($this->url);
         if (!filter_var($this->url, FILTER_VALIDATE_URL)) {
             die("Vui lòng nhập đúng định dạng url ! \n");
         }
-        $this->checkUrlScraped($this->url);
-
-        $drivers = implode(",", ["guzzle"]);
-        $this->driver = readline("Chọn driver \"{$drivers}\" (default using guzzle) : ");
-        if (empty($this->driver)) $this->driver = "guzzle";
-        $this->driver = strtolower($this->driver);
-        $this->driver = trim($this->driver);
-        if (!in_array($this->driver, ["guzzle"])) {
-            die("Vui lòng chọn đúng driver ! \n");
+        if ($validate_url_scraped) {
+            $this->checkUrlScraped($this->url);
         }
+
+//        $drivers = implode(",", ["guzzle"]);
+//        $this->driver = readline("Chọn driver \"{$drivers}\" (default using guzzle) : ");
+//        if (empty($this->driver)) $this->driver = "guzzle";
+//        $this->driver = strtolower($this->driver);
+//        $this->driver = trim($this->driver);
+//        if (!in_array($this->driver, ["guzzle"])) {
+//            die("Vui lòng chọn đúng driver ! \n");
+//        }
+        $this->driver = "guzzle";
 
         $types = implode(",", ["css", "xpath"]);
         $this->type_dom = readline("Chọn type dom \"{$types}\" (default using css) : ");
@@ -115,7 +118,7 @@ final class ScrapePhone
         try {
             $this->urls_scraped = json_decode(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'check_url_scraped.json'), true) ?? [];
             if (in_array($url, $this->urls_scraped)) {
-                die("Url đã được scrape , vui lòng xóa trong file check_url_scraped.json ! \n");
+                echo("Url đã được scrape ! \n");
             }
         } catch (Exception $exception) {
             echo $exception->getMessage();
@@ -195,6 +198,8 @@ final class ScrapePhone
             foreach ($result as $value) {
                 if (!empty($value)) {
                     $value = explode($this->explode_separator ?? " ", $value);
+                    $value[0] = $this->nameClear($value[0]);
+                    $value[1] = $this->phoneClear($value[1]);
                     if (isset($value[0]) && isset($value[1])) {
                         $this->in($worksheet, $start_cell, $value);
                     }
@@ -202,7 +207,9 @@ final class ScrapePhone
             }
         } else if ($this->dom == "table") {
             foreach ($result as $value) {
-                if (!empty($value[0]) && !empty($value[1])) {
+                $value[0] = $this->nameClear($value[0]);
+                $value[1] = $this->phoneClear($value[1]);
+                if (!empty($value[0]) && !empty($value[1]) && $value[0] != "" && $value[1] != "") {
                     $this->in($worksheet, $start_cell, $value);
                 }
             }
@@ -218,15 +225,15 @@ final class ScrapePhone
 
     private function in($worksheet, &$start_cell, $value): void
     {
-        $worksheet->getCell("B{$start_cell}")->setValue($this->nameClear($value[0]));
+        $worksheet->getCell("B{$start_cell}")->setValue($value[0]);
 
         $value[1] = str_replace(["–"], "-", $value[1]);
         $phones = explode("-", $value[1]);
         if (isset($phones[1])) {
-            $worksheet->getCell("C{$start_cell}")->setValue($this->phoneClear($phones[1]));
-            $worksheet->getCell("D{$start_cell}")->setValue($this->phoneClear($phones[0]));
+            $worksheet->getCell("C{$start_cell}")->setValue($phones[0]);
+            $worksheet->getCell("D{$start_cell}")->setValue($phones[1]);
         } else {
-            $worksheet->getCell("C{$start_cell}")->setValue($this->phoneClear($value[1]));
+            $worksheet->getCell("C{$start_cell}")->setValue($value[1]);
         }
 
         $start_cell++;
@@ -300,5 +307,5 @@ final class ScrapePhone
     }
 }
 
-$scrape = new ScrapePhone();
+$scrape = new ScrapePhone(true);
 $scrape->scrape();
