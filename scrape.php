@@ -3,7 +3,9 @@
 require __DIR__ . '/vendor/autoload.php';
 
 use GuzzleHttp\Client;
+use JetBrains\PhpStorm\NoReturn;
 use Symfony\Component\DomCrawler\Crawler;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 final class ScrapePhone
 {
@@ -34,7 +36,13 @@ final class ScrapePhone
         ],
     ];
 
-    private string $ext_save_file = "json";
+    private string $explode_separator = ":";
+
+    private string $template_file_path = "./template/import_contact.xlsx";
+
+    private string $file_name_output = "";
+
+    private array $urls_scraped = [];
 
     public function __construct()
     {
@@ -48,6 +56,7 @@ final class ScrapePhone
         if (!filter_var($this->url, FILTER_VALIDATE_URL)) {
             die("Vui lòng nhập đúng định dạng url ! \n");
         }
+        $this->checkUrlScraped($this->url);
 
         $drivers = implode(",", ["guzzle"]);
         $this->driver = readline("Chọn driver \"{$drivers}\" (default using guzzle) : ");
@@ -81,6 +90,8 @@ final class ScrapePhone
             if (empty($this->should_get_info)) {
                 die("Vui lòng nhập dom ! \n");
             }
+            $explode_separator = readline("Phân tách giữa tên và số điện thoại bằng kí tự nào (default ':' ) : ");
+            if (!empty($explode_separator)) $this->explode_separator = $explode_separator;
         } elseif ($this->dom == "table") {
             $this->should_get_info = readline("Nhập dom của bảng cần lấy dữ liệu (thẻ tr) : ");
             if (empty($this->should_get_info)) {
@@ -95,9 +106,23 @@ final class ScrapePhone
                 die("Vui lòng nhập dom của Số điện thoại ! \n");
             }
         }
+
+        $this->file_name_output = readline("Nhập Tên file : ");
     }
 
-    public function scrape(): void
+    private function checkUrlScraped($url): void
+    {
+        try {
+            $this->urls_scraped = json_decode(file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'check_url_scraped.json'), true) ?? [];
+            if (in_array($url, $this->urls_scraped)) {
+                die("Url đã được scrape , vui lòng xóa trong file check_url_scraped.json ! \n");
+            }
+        } catch (Exception $exception) {
+            echo $exception->getMessage();
+        }
+    }
+
+    public function scrape(): string
     {
         try {
             $html = $this->getHtml();
@@ -142,14 +167,79 @@ final class ScrapePhone
                     });
                 }
             }
-
-            $file_name = __DIR__ . DIRECTORY_SEPARATOR . "output" . DIRECTORY_SEPARATOR . $this->slugify($this->url) . "_" . $this->randName(10) . ".{$this->ext_save_file}";
-            file_put_contents($file_name, json_encode($result));
-
-            die("\033[32m Lấy dữ liệu thành công ! Vui lòng kiểm tra file {$file_name} \n");
+            echo "Lấy dữ liệu thành công ! \n";
+            return $this->handleResult($result);
         } catch (Exception $exception) {
             die("{$exception->getMessage()} \n");
         }
+    }
+
+    /**
+     * @throws \PhpOffice\PhpSpreadsheet\Exception
+     * @throws \PhpOffice\PhpSpreadsheet\Writer\Exception
+     */
+    public function handleResult($result): string
+    {
+        $spreadsheet = IOFactory::load($this->template_file_path);
+        $worksheet = $spreadsheet->getActiveSheet();
+
+        if (empty($this->file_name_output)) {
+            $file_name = __DIR__ . DIRECTORY_SEPARATOR . "output" . DIRECTORY_SEPARATOR . $this->slugify($this->url) . "_" . $this->randName(10) . ".xls";
+        } else {
+            $file_name = __DIR__ . DIRECTORY_SEPARATOR . "output" . DIRECTORY_SEPARATOR . $this->file_name_output . "_" . $this->randName(10) . ".xls";
+        }
+
+        $start_cell = 2;
+
+        if ($this->dom == "string") {
+            foreach ($result as $value) {
+                if (!empty($value)) {
+                    $value = explode($this->explode_separator ?? " ", $value);
+                    if (isset($value[0]) && isset($value[1])) {
+                        $this->in($worksheet, $start_cell, $value);
+                    }
+                }
+            }
+        } else if ($this->dom == "table") {
+            foreach ($result as $value) {
+                if (!empty($value[0]) && !empty($value[1])) {
+                    $this->in($worksheet, $start_cell, $value);
+                }
+            }
+        }
+        $writer = IOFactory::createWriter($spreadsheet, 'Xls');
+        $writer->save($file_name);
+        echo("Export ra file Excel thành công ! Vui lòng kiểm tra file {$file_name} \n");
+
+        $this->urls_scraped[] = $this->url;
+        file_put_contents(__DIR__ . DIRECTORY_SEPARATOR . 'check_url_scraped.json', json_encode($this->urls_scraped));
+        return $file_name;
+    }
+
+    private function in($worksheet, &$start_cell, $value): void
+    {
+        $worksheet->getCell("B{$start_cell}")->setValue($this->nameClear($value[0]));
+
+        $value[1] = str_replace(["–"], "-", $value[1]);
+        $phones = explode("-", $value[1]);
+        if (isset($phones[1])) {
+            $worksheet->getCell("C{$start_cell}")->setValue($this->phoneClear($phones[1]));
+            $worksheet->getCell("D{$start_cell}")->setValue($this->phoneClear($phones[0]));
+        } else {
+            $worksheet->getCell("C{$start_cell}")->setValue($this->phoneClear($value[1]));
+        }
+
+        $start_cell++;
+    }
+
+    private function phoneClear($phone): string
+    {
+        return preg_replace('/[^0-9]/', '', $phone);
+    }
+
+    private function nameClear($name): string
+    {
+        return str_replace([",", ".", "&nbsp;", "\n", "\r\n"], "", trim($name));
     }
 
     private function getHtml(): string

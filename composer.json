@@ -6,6 +6,7 @@
     "symfony/dom-crawler": "^6.2",
     "guzzlehttp/guzzle": "^7.0",
     "ext-mbstring": "*",
-    "symfony/css-selector": "^6.2"
+    "symfony/css-selector": "^6.2",
+    "phpoffice/phpspreadsheet": "^1.27"
   }
 }
