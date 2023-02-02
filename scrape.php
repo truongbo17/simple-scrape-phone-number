@@ -79,12 +79,12 @@ final class ScrapePhone
             die("Vui lòng chọn đúng type dom ! \n");
         }
 
-        $doms = implode(",", ["table", "string"]);
+        $doms = implode(",", ["table", "string", "custom"]);
         $this->dom = readline("Chọn type dom \"{$doms}\" (default using string) : ");
         if (empty($this->dom)) $this->dom = "string";
         $this->dom = strtolower($this->dom);
         $this->dom = trim($this->dom);
-        if (!in_array($this->dom, ["table", "string"])) {
+        if (!in_array($this->dom, ["table", "string", "custom"])) {
             die("Vui lòng chọn đúng dom ! \n");
         }
 
@@ -105,6 +105,19 @@ final class ScrapePhone
                 die("Vui lòng nhập dom của Tên ! \n");
             }
             $this->should_get_info_phone = readline("Nhập dom cần lấy dữ liệu của Số điện thoại trong bảng : ");
+            if (empty($this->should_get_info_phone)) {
+                die("Vui lòng nhập dom của Số điện thoại ! \n");
+            }
+        } elseif ($this->dom == "custom") {
+            $this->should_get_info = readline("Nhập dom của bảng cần lấy dữ liệu (thẻ tr) : ");
+            if (empty($this->should_get_info)) {
+                die("Vui lòng nhập dom của bảng (thẻ tr) ! \n");
+            }
+            $this->should_get_info_name = readline("Nhập dom cần lấy dữ liệu của Tên : ");
+            if (empty($this->should_get_info_name)) {
+                die("Vui lòng nhập dom của Tên ! \n");
+            }
+            $this->should_get_info_phone = readline("Nhập dom cần lấy dữ liệu của Số điện thoại : ");
             if (empty($this->should_get_info_phone)) {
                 die("Vui lòng nhập dom của Số điện thoại ! \n");
             }
@@ -169,6 +182,17 @@ final class ScrapePhone
                         }
                     });
                 }
+            }elseif ($this->dom == "custom") {
+                //crawl with custom
+                if ($this->type_dom == "css") {
+                    $result = $dom_crawler->filter($this->should_get_info_name)->each(function ($node, $i) {
+
+                    });
+                } else if ($this->type_dom == "xpath") {
+                    $result = $dom_crawler->filterXPath($this->should_get_info)->each(function ($node, $i) {
+
+                    });
+                }
             }
             echo "Lấy dữ liệu thành công ! \n";
             return $this->handleResult($result);
@@ -198,8 +222,6 @@ final class ScrapePhone
             foreach ($result as $value) {
                 if (!empty($value)) {
                     $value = explode($this->explode_separator ?? " ", $value);
-                    $value[0] = $this->nameClear($value[0]);
-                    $value[1] = $this->phoneClear($value[1]);
                     if (isset($value[0]) && isset($value[1])) {
                         $this->in($worksheet, $start_cell, $value);
                     }
@@ -207,8 +229,6 @@ final class ScrapePhone
             }
         } else if ($this->dom == "table") {
             foreach ($result as $value) {
-                $value[0] = $this->nameClear($value[0]);
-                $value[1] = $this->phoneClear($value[1]);
                 if (!empty($value[0]) && !empty($value[1]) && $value[0] != "" && $value[1] != "") {
                     $this->in($worksheet, $start_cell, $value);
                 }
@@ -225,15 +245,15 @@ final class ScrapePhone
 
     private function in($worksheet, &$start_cell, $value): void
     {
-        $worksheet->getCell("B{$start_cell}")->setValue($value[0]);
+        $worksheet->getCell("B{$start_cell}")->setValue($this->nameClear($value[0]));
 
-        $value[1] = str_replace(["–"], "-", $value[1]);
+        $value[1] = str_replace(["–", ",", "\r\n", "\n"], "-", $value[1]);
         $phones = explode("-", $value[1]);
         if (isset($phones[1])) {
-            $worksheet->getCell("C{$start_cell}")->setValue($phones[0]);
-            $worksheet->getCell("D{$start_cell}")->setValue($phones[1]);
+            $worksheet->getCell("C{$start_cell}")->setValue($this->phoneClear($phones[0]));
+            $worksheet->getCell("D{$start_cell}")->setValue($this->phoneClear($phones[1]));
         } else {
-            $worksheet->getCell("C{$start_cell}")->setValue($value[1]);
+            $worksheet->getCell("C{$start_cell}")->setValue($this->phoneClear($value[1]));
         }
 
         $start_cell++;
